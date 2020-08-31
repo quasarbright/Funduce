@@ -65,9 +65,9 @@ load (file:_) = do
     (env,store) <- get
     sexprs <- hoistErr $ parseSexprs file contents
     aprog <- hoistErr $ runExcept (convertProgram sexprs)
-    liftIO $ print aprog
+--    liftIO $ print aprog
     let cprog = desugarProgram aprog
-    liftIO $ print cprog
+--    liftIO $ print cprog
     let (mEnv',store') = interpretProgram env store cprog
     env' <- hoistErr mEnv'
     put (env',store')
