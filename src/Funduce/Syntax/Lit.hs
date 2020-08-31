@@ -10,5 +10,6 @@ data Lit a = LInt Int a
 instance Show (Lit a) where
     show = \case
         LInt n _ -> show n
-        LBool b _ -> show b
+        LBool True _ -> "#true"
+        LBool False _ -> "#false"
         LChar c _ -> show c
