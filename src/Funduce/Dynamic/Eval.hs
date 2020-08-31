@@ -148,6 +148,12 @@ runBinding evalRHS (Rec bindings _) = do
 runDecl :: Binding a (Expr a) -> Interpreter a (Env a)
 runDecl = runBinding evalExpr
 
+runProgram :: Program a -> Interpreter a (Env a)
+runProgram (Program decls) = foldr go ask decls
+    where go decl m = do
+              env' <- runDecl decl
+              local (const env') m
+
 evalCell :: Cell a -> Interpreter a (Value a)
 evalCell = \case
     CInt n -> return $ VInt n
@@ -171,7 +177,7 @@ interpretDecl :: Env a -> Store a -> Binding a (Expr a) -> (Either DynamicError 
 interpretDecl env store = executeInterpreter env store . runDecl
 
 interpretProgram :: Env a -> Store a -> Program a -> (Either DynamicError (Env a), Store a)
-interpretProgram env store = executeInterpreter env store . fmap mconcat . mapM runDecl . getProgram
+interpretProgram env store = executeInterpreter env store . runProgram
 
 interpretEnv :: Env a -> Store a -> (Either DynamicError (Map String (Value a)), Store a)
 interpretEnv env store = executeInterpreter env store (ask >>= mapM evalCell)

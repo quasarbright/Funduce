@@ -22,7 +22,7 @@ desugarExpr = cata $ \case
         where go decl body' =
                   C.Let (desugarDeclWith id decl) body' a'
     A.LambdaF args body a -> curryHelp args body a
-    A.AppF fun args a -> foldr1 go (fun:args)
+    A.AppF fun args a -> foldl1 go (fun:args)
         where go f x = C.App f x a
 
 desugarDecl :: A.Decl a (A.Expr a) -> C.Decl a

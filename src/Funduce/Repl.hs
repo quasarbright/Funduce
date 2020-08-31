@@ -40,7 +40,9 @@ exec source = do
     sexpr <- hoistErr $ parseSexpr "<stdin>" source
     -- TODO wf
     aexpr <- hoistErr $ runExcept (convertExpr sexpr)
+--    liftIO $ print aexpr
     let cexpr = desugarExpr aexpr
+--    liftIO $ print cexpr
     let (mVal, store') = interpretExpr env store cexpr
     val <- hoistErr mVal
     put (env,store')
@@ -63,7 +65,9 @@ load (file:_) = do
     (env,store) <- get
     sexprs <- hoistErr $ parseSexprs file contents
     aprog <- hoistErr $ runExcept (convertProgram sexprs)
+    liftIO $ print aprog
     let cprog = desugarProgram aprog
+    liftIO $ print cprog
     let (mEnv',store') = interpretProgram env store cprog
     env' <- hoistErr mEnv'
     put (env',store')

@@ -2,6 +2,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE DeriveTraversable #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE FlexibleInstances #-}
 
 module Funduce.Syntax.AST where
 
@@ -20,7 +21,7 @@ data Expr a = Var String a
             | App (Expr a) [Expr a] a
             deriving(Eq, Ord)
 
-data Decl a b = Define String [String] b a deriving(Eq, Ord, Show, Functor, Foldable, Traversable)
+data Decl a b = Define String [String] b a deriving(Eq, Ord, Functor, Foldable, Traversable)
 
 makeBaseFunctor ''Expr
 
@@ -47,15 +48,21 @@ instance Pretty (Expr a) where
         AppF f [] _ -> snd f
         AppF f args _ -> parens . nest 4 . sep $ snd <$> (f:args)
 
-renderExpr :: Expr a -> String
-renderExpr = pretty >>> layoutPretty defaultLayoutOptions >>> renderString
-
-instance Show (Expr a) where
-    show = renderExpr
-
 
 instance Pretty (Program a) where
     pretty = pretty . getProgram
+
+renderPretty :: Pretty a => a -> String
+renderPretty = pretty >>> layoutPretty defaultLayoutOptions >>> renderString
+
+instance Show (Expr a) where
+    show = renderPretty
+
+instance Show (Decl a (Expr a)) where
+    show = renderPretty
+
+instance Show (Program a) where
+    show = renderPretty
 
 getTag :: ExprF p r -> p
 getTag = \case

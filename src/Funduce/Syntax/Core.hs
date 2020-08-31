@@ -52,7 +52,7 @@ instance Pretty b => Pretty (Binding a b) where
         NonRec x rhs _ -> hsep [pretty x, pretty "=", pretty rhs]
         Rec bindings _ -> align . encloseSep mempty mempty (softline <> pretty "and ") 
                           $ [hsep[pretty x,pretty "=",pretty rhs] | (x,rhs,_) <- bindings]
-    prettyList decls = encloseSep mempty mempty (line <> line) (pretty <$> decls)
+    prettyList decls = encloseSep mempty mempty line (pretty <$> decls)
 
 instance Pretty (Expr a) where
     pretty = para $ \case
@@ -65,8 +65,20 @@ instance Pretty (Expr a) where
 instance Pretty (Program a) where
     pretty = pretty . getProgram
 
+instance Show (Decl a) where
+    show = renderPretty
+
+instance Show (Program a) where
+    show = renderPretty
+
+renderPretty :: Pretty a => a -> String
+renderPretty = pretty >>> layoutPretty defaultLayoutOptions >>> renderString
+
 renderExpr :: Expr a -> String
-renderExpr = pretty >>> layoutPretty defaultLayoutOptions >>> renderString
+renderExpr = renderPretty
 
 renderDecls :: [Decl a] -> String
-renderDecls = pretty >>> layoutPretty defaultLayoutOptions >>> renderString
+renderDecls = renderPretty
+
+renderProg :: Program a -> String
+renderProg = renderPretty
