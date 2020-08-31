@@ -22,6 +22,7 @@ data Expr a = Var String a
             | Let (Binding a (Expr a)) (Expr a) a
             | Lambda String (Expr a) a
             | App (Expr a) (Expr a) a
+            | If (Expr a) (Expr a) (Expr a) a
             deriving (Eq, Ord)
 
 data Binding a b = NonRec String b a
@@ -47,6 +48,7 @@ instance Show (Expr a) where
         LetF binding body _ -> concat["(let ",show binding," in ",body,")"]
         LambdaF x body _ -> concat["(fun ",x," -> ",body,")"]
         AppF f x _ -> concat ["(",f," ",x,")"]
+        IfF cnd thn els _ -> concat["(if ",cnd," ",thn," ",els,")"]
 
 instance Pretty b => Pretty (Binding a b) where
     pretty = \case

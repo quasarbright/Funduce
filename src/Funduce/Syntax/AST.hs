@@ -19,6 +19,7 @@ data Expr a = Var String a
             | Local [Decl a (Expr a)] (Expr a) a
             | Lambda [String] (Expr a) a
             | App (Expr a) [Expr a] a
+            | If (Expr a) (Expr a) (Expr a) a
             deriving(Eq, Ord)
 
 data Decl a b = Define String [String] b a deriving(Eq, Ord, Functor, Foldable, Traversable)
@@ -47,6 +48,7 @@ instance Pretty (Expr a) where
                                               ]
         AppF f [] _ -> snd f
         AppF f args _ -> parens . nest 4 . sep $ snd <$> (f:args)
+        IfF cnd thn els _ -> parens . nest 4 . sep $ [pretty "if" <+> snd cnd, snd thn, snd els]
 
 
 instance Pretty (Program a) where
@@ -71,6 +73,7 @@ getTag = \case
     LocalF _ _ a -> a
     LambdaF _ _ a -> a
     AppF _ _ a -> a
+    IfF _ _ _ a -> a
 
 combineExprTags :: Semigroup a => ExprF a r1 -> ExprF a r2 -> a
 combineExprTags a b = getTag a <> getTag b
