@@ -2,7 +2,7 @@
 
 module Funduce.Syntax.Lit where
 
-data Lit a = LInt Int a
+data Lit a = LInt Integer a
            | LBool Bool a
            | LChar Char a
            deriving (Eq, Ord)
