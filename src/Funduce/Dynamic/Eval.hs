@@ -2,7 +2,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE LambdaCase #-}
 
-module Funduce.Dynamic.Eval(interpretExpr, interpretDecl, interpretProgram, Store, Env, Value) where
+module Funduce.Dynamic.Eval(interpretExpr, interpretDecl, interpretProgram, interpretEnv, Store, emptyStore, Env, emptyEnv, Value) where
 
 import Funduce.Syntax.Lit
 import Funduce.Syntax.Core
@@ -17,15 +17,16 @@ import Control.Monad.Identity (Identity)
 import Data.Functor.Foldable
 import Control.Arrow
 
-data Cell a = CInt Int
+data Cell a = CInt Integer
             | CBool Bool
             | CChar Char
             | CPointer Address
+            deriving(Show)
 
 -- TODO if you do garbage collection, you'll need to reify the enclosed environment
 data Boxed a = Closure (Maybe String) (Cell a -> Interpreter a (Cell a))
 
-data Value a = VInt Int
+data Value a = VInt Integer
              | VBool Bool
              | VChar Char
              | VClosure (Maybe String) (Cell a -> (Either DynamicError (Value a), Store a)) -- Might need revision
@@ -33,8 +34,9 @@ data Value a = VInt Int
 instance Show (Value a) where
     show = \case
         VInt n -> show n
-        VBool b -> show b
-        VChar c -> show c
+        VBool True -> "#true"
+        VBool False -> "#false"
+        VChar c -> "#\\"++[c]
         VClosure (Just name) _ -> "<function "++name++">"
         VClosure Nothing _ -> "<function>"
 
@@ -43,8 +45,14 @@ type Address = Integer
 -- Heap
 type Store a = Map Address (Boxed a)
 
+emptyStore :: Store a
+emptyStore = mempty
+
 -- Stack
 type Env a = Map String (Cell a)
+
+emptyEnv :: Env a
+emptyEnv = mempty
 
 -- TODO maintain call stack for errors
 -- TODO maintain current location
@@ -94,7 +102,7 @@ evalExpr = cata $ \case
         local (const env) body
     LambdaF x body _ -> do
         env <- ask
-        let fun cell = extend x cell . local (const env) $ body
+        let fun cell = local (const $ Map.insert x cell env) body
         CPointer <$> makeBoxed (Closure Nothing fun)
     AppF f_ x _ -> do
         f <- f_
@@ -162,5 +170,8 @@ interpretExpr env store = executeInterpreter env store . (evalExpr >=> evalCell)
 interpretDecl :: Env a -> Store a -> Binding a (Expr a) -> (Either DynamicError (Env a), Store a)
 interpretDecl env store = executeInterpreter env store . runDecl
 
-interpretProgram :: Env a -> Store a -> Program a -> (Either DynamicError [Env a], Store a)
-interpretProgram env store = executeInterpreter env store . mapM runDecl . getProgram
+interpretProgram :: Env a -> Store a -> Program a -> (Either DynamicError (Env a), Store a)
+interpretProgram env store = executeInterpreter env store . fmap mconcat . mapM runDecl . getProgram
+
+interpretEnv :: Env a -> Store a -> (Either DynamicError (Map String (Value a)), Store a)
+interpretEnv env store = executeInterpreter env store (ask >>= mapM evalCell)

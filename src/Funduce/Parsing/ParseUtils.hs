@@ -67,7 +67,7 @@ parens = between (symbol "(") (symbol ")")
 topParser :: [Parser a -> Parser a] -> Parser a
 topParser parsers = foldr (\ep p -> ep p) (error "you will never arrive at the truth") (cycle parsers)
 
-newtype SS = SS {getSS :: (SourcePos, SourcePos)}
+newtype SS = SS {getSS :: (SourcePos, SourcePos)} deriving(Show)
 
 instance Semigroup SS where
     SS (a,_) <> SS (_,b) = SS (a,b)

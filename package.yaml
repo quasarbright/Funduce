@@ -27,6 +27,7 @@ dependencies:
 - mtl
 - megaparsec
 - prettyprinter
+- repline
 
 library:
   source-dirs: src

@@ -43,9 +43,9 @@ instance Show (Expr a) where
     show = cata $ \case
         VarF x _ -> x
         LitF l _ -> show l
-        LetF binding body _ -> unwords["(let",show binding,"in",body,")"]
-        LambdaF x body _ -> unwords["(fun",x,"->",body,")"]
-        AppF f x _ -> unwords["(",f,x,")"]
+        LetF binding body _ -> concat["(let ",show binding," in ",body,")"]
+        LambdaF x body _ -> concat["(fun ",x," -> ",body,")"]
+        AppF f x _ -> concat ["(",f," ",x,")"]
 
 instance Pretty b => Pretty (Binding a b) where
     pretty = \case

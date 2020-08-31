@@ -1,0 +1,15 @@
+; this is a comment
+
+(define one 1)
+
+(define (id x) x)
+
+(define (const x y) x)
+
+(define (constOne x) one) ; test closing over free variables
+
+(define anotherOne (constOne #\a))
+
+(define idOne (id one))
+
+(define idNestOne (id (((id id) (id one))))) ; should be 1

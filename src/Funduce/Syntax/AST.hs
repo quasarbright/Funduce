@@ -9,6 +9,8 @@ import Funduce.Syntax.Lit
 import Data.Functor.Foldable.TH (makeBaseFunctor)
 import Data.Functor.Foldable
 import Data.Text.Prettyprint.Doc
+import Control.Arrow ((>>>))
+import Data.Text.Prettyprint.Doc.Render.String (renderString)
 
 
 data Expr a = Var String a
@@ -16,7 +18,7 @@ data Expr a = Var String a
             | Local [Decl a (Expr a)] (Expr a) a
             | Lambda [String] (Expr a) a
             | App (Expr a) [Expr a] a
-            deriving(Eq, Ord, Show)
+            deriving(Eq, Ord)
 
 data Decl a b = Define String [String] b a deriving(Eq, Ord, Show, Functor, Foldable, Traversable)
 
@@ -44,6 +46,13 @@ instance Pretty (Expr a) where
                                               ]
         AppF f [] _ -> snd f
         AppF f args _ -> parens . nest 4 . sep $ snd <$> (f:args)
+
+renderExpr :: Expr a -> String
+renderExpr = pretty >>> layoutPretty defaultLayoutOptions >>> renderString
+
+instance Show (Expr a) where
+    show = renderExpr
+
 
 instance Pretty (Program a) where
     pretty = pretty . getProgram

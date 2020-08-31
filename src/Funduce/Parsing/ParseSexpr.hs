@@ -42,19 +42,19 @@ parseNat :: Parser Integer
 parseNat = lexeme L.decimal
 
 parseBool :: Parser Bool
-parseBool = choice [symbol s $> b | (s,b) <- table]
+parseBool = choice [try (symbol s $> b) | (s,b) <- table]
     where
         table =
-            [ ("#t", True)
+            [ ("#true", True)
             , ("#T", True)
-            , ("#true", True)
-            , ("#f", False)
-            , ("#F", False)
+            , ("#t", True)
             , ("#false", False)
+            , ("#F", False)
+            , ("#f", False)
             ]
 
 parseChar :: Parser Char
-parseChar = lexeme $ string "$\\" *> L.charLiteral
+parseChar = lexeme $ string "#\\" *> L.charLiteral
 
 parseVar :: Parser String
 parseVar = identifier

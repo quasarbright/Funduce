@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 05572d9ad35acd82be1f1f43af06eae6999317358e131daa5568adfc8f257cd1
+-- hash: 7c402fcc3208558ff734911046e94acec045e422140ba2ada87aa46581ba0e4f
 
 name:           Funduce
 version:        0.1.0.0
@@ -32,11 +32,11 @@ library
       Funduce.Parsing.ConvertSexpr
       Funduce.Parsing.ParseSexpr
       Funduce.Parsing.ParseUtils
+      Funduce.Repl
       Funduce.Static.Desugar
       Funduce.Syntax.AST
       Funduce.Syntax.Core
       Funduce.Syntax.Lit
-      Lib
   other-modules:
       Paths_Funduce
   hs-source-dirs:
@@ -49,6 +49,7 @@ library
     , mtl
     , prettyprinter
     , recursion-schemes
+    , repline
     , transformers
   default-language: Haskell2010
 
@@ -67,6 +68,7 @@ executable Funduce-exe
     , mtl
     , prettyprinter
     , recursion-schemes
+    , repline
     , transformers
   default-language: Haskell2010
 
@@ -87,5 +89,6 @@ test-suite Funduce-test
     , mtl
     , prettyprinter
     , recursion-schemes
+    , repline
     , transformers
   default-language: Haskell2010
