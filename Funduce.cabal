@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 11488f78e04a58fc49e3769e1ff0cbecfa3632b40eeea21549926bda5831b505
+-- hash: 20e40d63de2673fb8ddd74a9e3e526aec709201cb52ed916b5b87089e026c400
 
 name:           Funduce
 version:        0.1.0.0
@@ -27,13 +27,26 @@ source-repository head
 
 library
   exposed-modules:
+      Funduce.Dynamic.DynamicError
+      Funduce.Dynamic.Eval
+      Funduce.Static.Desugar
+      Funduce.Syntax.AST
+      Funduce.Syntax.Core
+      Funduce.Syntax.Lit
       Lib
   other-modules:
       Paths_Funduce
   hs-source-dirs:
       src
+  ghc-options: -w -Wall
   build-depends:
       base >=4.7 && <5
+    , containers
+    , megaparsec
+    , mtl
+    , prettyprinter
+    , recursion-schemes
+    , transformers
   default-language: Haskell2010
 
 executable Funduce-exe
@@ -46,6 +59,12 @@ executable Funduce-exe
   build-depends:
       Funduce
     , base >=4.7 && <5
+    , containers
+    , megaparsec
+    , mtl
+    , prettyprinter
+    , recursion-schemes
+    , transformers
   default-language: Haskell2010
 
 test-suite Funduce-test
@@ -58,5 +77,12 @@ test-suite Funduce-test
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       Funduce
+    , HUnit
     , base >=4.7 && <5
+    , containers
+    , megaparsec
+    , mtl
+    , prettyprinter
+    , recursion-schemes
+    , transformers
   default-language: Haskell2010
