@@ -2,7 +2,7 @@
 
 module Funduce.Repl(run) where
 
-import Funduce.Parsing.ParseUtils(SS)
+import Funduce.Parsing.ParseUtils(SS, dummySS)
 import Funduce.Parsing.ParseSexpr
 import Funduce.Parsing.ConvertSexpr
 import Funduce.Static.Desugar
@@ -19,8 +19,8 @@ import qualified Data.Map as Map
 
 type IState = (Env SS, Store SS)
 
-emptyState :: IState
-emptyState = (emptyEnv, emptyStore)
+initialState :: IState
+initialState = getInitialState dummySS
 
 type Repl a = HaskelineT (StateT IState IO) a
 
@@ -107,12 +107,11 @@ opts = [
 -- Entry Point
 ---------------------------------------------------------------------
 
-
 completer :: CompleterStyle (StateT IState IO)
 completer = Prefix (wordCompleter comp) defaultMatcher
 
 shell :: Repl a -> IO ()
-shell pre = flip evalStateT emptyState
+shell pre = flip evalStateT initialState
      $ evalRepl (pure "Funduce> ") exec opts (Just ':') completer pre
 
 run :: IO ()

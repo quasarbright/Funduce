@@ -2,11 +2,13 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE LambdaCase #-}
 
-module Funduce.Dynamic.Eval(interpretExpr, interpretDecl, interpretProgram, interpretEnv, Store, emptyStore, Env, emptyEnv, Value) where
+module Funduce.Dynamic.Eval(interpretExpr, interpretDecl, interpretProgram, interpretEnv, Store, emptyStore, Env, emptyEnv, getInitialState, Value) where
 
 import Funduce.Syntax.Lit
+import Funduce.Syntax.Prim
 import Funduce.Syntax.Core
 import Funduce.Dynamic.DynamicError
+import Funduce.Dynamic.WiredIns
 
 import Control.Monad.RWS.Strict
 import Control.Monad.Except
@@ -21,9 +23,9 @@ data Cell a = CInt Integer
             | CBool Bool
             | CChar Char
             | CPointer Address
-            deriving(Show)
+            deriving(Eq, Ord, Show)
 
--- TODO if you do garbage collection, you'll need to reify the enclosed environment
+-- TODO if you do garbage collection, you'll need to reify the enclosed environment. (maybe just do that instead of using a function)
 data Boxed a = Closure (Maybe String) (Cell a -> Interpreter a (Cell a))
 
 data Value a = VInt Integer
@@ -90,6 +92,59 @@ makeBoxed boxed = do
     writeAddress address boxed
     return address
 
+inferCell :: Cell a -> Interpreter a Type
+inferCell = \case
+    CInt{} -> return TInt
+    CBool{} -> return TBool
+    CChar{} -> return TChar
+    CPointer address -> do
+        boxed <- readAddress address
+        case boxed of
+            Closure{} -> return TFun
+
+checkCell :: Cell a -> Type -> Interpreter a ()
+checkCell cell expected = do
+    actual <- inferCell cell
+    unless (expected == actual) (throwError (TypeMismatch expected actual))
+
+wrapArith :: (Integer -> Integer -> Integer) -> Cell a -> Cell a -> Interpreter a (Cell a)
+wrapArith op a b = do
+    checkCell a TInt
+    checkCell b TInt
+    case (a,b) of
+       (CInt a', CInt b') -> return (CInt (a' `op` b'))
+       _ -> throwError (InternalError "type checker should have caught this")
+
+wrapCmp :: (Cell a1 -> Cell a1 -> Bool) -> Cell a1 -> Cell a1 -> Interpreter a1 (Cell a2)
+wrapCmp cmp a b = do
+    ta <- inferCell a
+    checkCell b ta
+    return (CBool (cmp a b)) -- TODO actual cmp for structs
+
+wrapLogic :: (Bool -> Bool -> Bool) -> Cell a -> Cell a -> Interpreter a (Cell a)
+wrapLogic op a b = do
+    checkCell a TBool
+    checkCell b TBool
+    case (a,b) of
+        (CBool a', CBool b') -> return (CBool (op a' b'))
+        _ -> throwError (InternalError "type checker should have caught this")
+
+prim2Help :: Prim2 -> Cell a -> Cell a -> Interpreter a (Cell a)
+prim2Help p a b = case p of
+    Plus -> wrapArith (+) a b
+    Minus -> wrapArith (-) a b
+    Times -> wrapArith (*) a b
+    Divide | b == CInt 0 -> throwError DivideByZero
+           | otherwise -> wrapArith div a b
+    Eq -> wrapCmp (==) a b
+    Neq -> wrapCmp (/=) a b
+    Lt -> wrapCmp (<) a b
+    Gt -> wrapCmp (>) a b
+    Lte -> wrapCmp (<=) a b
+    Gte -> wrapCmp (>=) a b
+    And -> wrapLogic (&&) a b
+    Or -> wrapLogic (||) a b
+
 evalExpr :: Expr a -> Interpreter a (Cell a)
 evalExpr = cata $ \case
     VarF x _ -> lookupVar x
@@ -97,6 +152,7 @@ evalExpr = cata $ \case
         LInt n _ -> return $ CInt n
         LBool b _ -> return $ CBool b
         LChar c _ -> return $ CChar c
+    Prim2F p a b -> join (prim2Help p <$> a <*> b)
     LetF decl body _ -> do
         env <- runBinding id decl
         local (const env) body
@@ -153,6 +209,11 @@ runProgram (Program decls) = foldr go ask decls
     where go decl m = do
               env' <- runDecl decl
               local (const env') m
+
+getInitialState :: a -> (Env a, Store a)
+getInitialState a = case executeInterpreter emptyEnv emptyStore $ runProgram (Program (wiredIns a)) of
+    (Left _,_) -> error "prelude failed?"
+    (Right env,store) -> (env,store) 
 
 evalCell :: Cell a -> Interpreter a (Value a)
 evalCell = \case

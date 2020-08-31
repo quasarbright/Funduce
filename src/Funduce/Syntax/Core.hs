@@ -7,6 +7,7 @@
 module Funduce.Syntax.Core where
 
 import Funduce.Syntax.Lit
+import Funduce.Syntax.Prim
 
 import Data.Functor.Foldable
 import Data.Text.Prettyprint.Doc
@@ -15,10 +16,9 @@ import Data.List (intercalate)
 import Control.Arrow ((>>>))
 import Data.Functor.Foldable.TH (makeBaseFunctor)
 
-
-
 data Expr a = Var String a
             | Lit (Lit a) a
+            | Prim2 Prim2 (Expr a) (Expr a)
             | Let (Binding a (Expr a)) (Expr a) a
             | Lambda String (Expr a) a
             | App (Expr a) (Expr a) a
@@ -43,6 +43,7 @@ instance Show (Expr a) where
     show = cata $ \case
         VarF x _ -> x
         LitF l _ -> show l
+        Prim2F p a b -> concat["(PRIM ",show p," ",a," ",b,")"]
         LetF binding body _ -> concat["(let ",show binding," in ",body,")"]
         LambdaF x body _ -> concat["(fun ",x," -> ",body,")"]
         AppF f x _ -> concat ["(",f," ",x,")"]
@@ -58,9 +59,10 @@ instance Pretty (Expr a) where
     pretty = para $ \case
         VarF x _ -> pretty x
         LitF l _ -> pretty (show l)
+        Prim2F p (_,a) (_,b) -> parens (nest 4 . sep $ [hsep [pretty "PRIM", pretty (show p)], a, b]) 
         LetF binding (_,body) _ -> align . sep $ [hsep [pretty "(let",pretty (fst <$> binding),pretty "in"], body <> pretty ")"]
         LambdaF x (_,body) _ -> nest 4 . sep $ [hsep [pretty "(fun",pretty x,pretty "->"],body <> pretty ")"] 
-        AppF (_,f) (_,x) _ -> nest 4 . sep $ [f,x]
+        AppF (_,f) (_,x) _ -> parens (nest 4 . sep $ [f,x])
 
 instance Pretty (Program a) where
     pretty = pretty . getProgram
