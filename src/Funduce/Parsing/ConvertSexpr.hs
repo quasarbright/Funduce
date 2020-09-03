@@ -32,6 +32,9 @@ convertExpr = para $ \case
     SParenF [(SVar "local" _,_), (SBracket decls _,_), (_,body)] a ->
         Local <$> mapM convertDecl decls <*> body <*> pure a
     SParenF ((SVar "local" _,_):_) a -> throwError (Msg "invalid local expression" a)
+    SParenF [(SVar "if" _,_), (_,cnd), (_,thn), (_,els)] a ->
+        If <$> cnd <*> thn <*> els <*> pure a
+    SParenF ((SVar "if" _,_):_) a -> throwError (Msg "invalid if expression" a)
     SParenF [(_,e)] _ -> e
     SParenF ((_,f):args) a -> App <$> f <*> sequence (snd <$> args) <*> pure a
     SParenF [] a -> throwError (Msg "unexpected empty parens" a)

@@ -169,6 +169,12 @@ evalExpr = cata $ \case
                     Closure _ fun -> do
                         fun =<< x
             _ -> throwError AppliedNonFunction
+    IfF cnd thn els _ -> do
+        cnd' <- cnd
+        checkCell cnd' TBool
+        case cnd' of
+            CBool b -> if b then thn else els
+            _ -> throwError (InternalError "should be impossible")
 
 
 runBinding :: (b -> Interpreter a (Cell a)) -> Binding a b -> Interpreter a (Env a)

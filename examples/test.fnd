@@ -13,3 +13,5 @@
 (define idOne (id one))
 
 (define idNestOne (id (((id id) (id one))))) ; should be 1
+
+(define (fac n) (if (eq? n 0) 1 (* n (fac (- n 1)))))

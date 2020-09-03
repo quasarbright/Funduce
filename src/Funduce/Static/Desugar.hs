@@ -24,6 +24,7 @@ desugarExpr = cata $ \case
     A.LambdaF args body a -> curryHelp args body a
     A.AppF fun args a -> foldl1 go (fun:args)
         where go f x = C.App f x a
+    A.IfF cnd thn els a -> C.If cnd thn els a
 
 desugarDecl :: A.Decl a (A.Expr a) -> C.Decl a
 desugarDecl = desugarDeclWith desugarExpr

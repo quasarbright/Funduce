@@ -65,6 +65,7 @@ instance Pretty (Expr a) where
         LetF binding (_,body) _ -> align . sep $ [hsep [pretty "(let",pretty (fst <$> binding),pretty "in"], body <> pretty ")"]
         LambdaF x (_,body) _ -> nest 4 . sep $ [hsep [pretty "(fun",pretty x,pretty "->"],body <> pretty ")"] 
         AppF (_,f) (_,x) _ -> parens (nest 4 . sep $ [f,x])
+        IfF (_,cnd) (_,thn) (_,els) _ -> parens . nest 4 . sep $ [pretty "if", cnd, thn, els]
 
 instance Pretty (Program a) where
     pretty = pretty . getProgram
