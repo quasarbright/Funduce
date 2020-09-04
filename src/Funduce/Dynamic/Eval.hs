@@ -9,6 +9,7 @@ import Funduce.Syntax.Prim
 import Funduce.Syntax.Core
 import Funduce.Dynamic.DynamicError
 import Funduce.Dynamic.WiredIns
+import Funduce.Dynamic.Type
 
 import Control.Monad.RWS.Strict
 import Control.Monad.Except
@@ -27,11 +28,13 @@ data Cell a = CInt Integer
 
 -- TODO if you do garbage collection, you'll need to reify the enclosed environment. (maybe just do that instead of using a function)
 data Boxed a = Closure (Maybe String) (Cell a -> Interpreter a (Cell a))
+             | Object (Map String (Cell a)) Type
 
 data Value a = VInt Integer
              | VBool Bool
              | VChar Char
              | VClosure (Maybe String) (Cell a -> (Either DynamicError (Value a), Store a)) -- Might need revision
+             | VObject (Map String (Value a)) Type
 
 instance Show (Value a) where
     show = \case
@@ -41,6 +44,8 @@ instance Show (Value a) where
         VChar c -> "#\\"++[c]
         VClosure (Just name) _ -> "<function "++name++">"
         VClosure Nothing _ -> "<function>"
+        VObject props (TCon  name _) -> name ++ show props
+        VObject _ t -> error ("object with non-con type: "++show t)
 
 type Address = Integer
 
@@ -101,6 +106,7 @@ inferCell = \case
         boxed <- readAddress address
         case boxed of
             Closure{} -> return TFun
+            Object _ t -> return t
 
 checkCell :: Cell a -> Type -> Interpreter a ()
 checkCell cell expected = do
@@ -168,6 +174,7 @@ evalExpr = cata $ \case
                 case fBoxed of
                     Closure _ fun -> do
                         fun =<< x
+                    _ -> throwError AppliedNonFunction
             _ -> throwError AppliedNonFunction
     IfF cnd thn els _ -> do
         cnd' <- cnd
@@ -175,6 +182,10 @@ evalExpr = cata $ \case
         case cnd' of
             CBool b -> if b then thn else els
             _ -> throwError (InternalError "should be impossible")
+    TypeTestF e t _ -> do
+        e' <- e
+        t' <- inferCell e'
+        return (CBool (t == t'))
 
 
 runBinding :: (b -> Interpreter a (Cell a)) -> Binding a b -> Interpreter a (Env a)
@@ -233,6 +244,8 @@ evalCell = \case
                 env <- ask
                 store <- get
                 return $ VClosure mName (\cell -> executeInterpreter env store (evalCell =<< fun cell))
+            Object props t -> VObject <$> mapM evalCell props <*> pure t
+            
 
 executeInterpreter :: Env a -> Store a -> Interpreter a r -> (Either DynamicError r, Store a)
 executeInterpreter env store = runInterpreter >>> runExceptT >>> (\ m -> runRWS m env store) >>> (\(a,b,_) -> (a,b))

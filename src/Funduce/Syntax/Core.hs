@@ -8,6 +8,7 @@ module Funduce.Syntax.Core where
 
 import Funduce.Syntax.Lit
 import Funduce.Syntax.Prim
+import Funduce.Dynamic.Type
 
 import Data.Functor.Foldable
 import Data.Text.Prettyprint.Doc
@@ -23,6 +24,7 @@ data Expr a = Var String a
             | Lambda String (Expr a) a
             | App (Expr a) (Expr a) a
             | If (Expr a) (Expr a) (Expr a) a
+            | TypeTest (Expr a) Type a
             deriving (Eq, Ord)
 
 data Binding a b = NonRec String b a
@@ -49,6 +51,7 @@ instance Show (Expr a) where
         LambdaF x body _ -> concat["(fun ",x," -> ",body,")"]
         AppF f x _ -> concat ["(",f," ",x,")"]
         IfF cnd thn els _ -> concat["(if ",cnd," ",thn," ",els,")"]
+        TypeTestF e t _ -> concat["(TYPE? ",e," ",show t,")"]
 
 instance Pretty b => Pretty (Binding a b) where
     pretty = \case
@@ -61,11 +64,12 @@ instance Pretty (Expr a) where
     pretty = para $ \case
         VarF x _ -> pretty x
         LitF l _ -> pretty (show l)
-        Prim2F p (_,a) (_,b) -> parens (nest 4 . sep $ [hsep [pretty "PRIM", pretty (show p)], a, b]) 
+        Prim2F p (_,a) (_,b) -> parens . nest 4 . sep $ [hsep [pretty "PRIM", pretty (show p)], a, b]
         LetF binding (_,body) _ -> align . sep $ [hsep [pretty "(let",pretty (fst <$> binding),pretty "in"], body <> pretty ")"]
         LambdaF x (_,body) _ -> nest 4 . sep $ [hsep [pretty "(fun",pretty x,pretty "->"],body <> pretty ")"] 
         AppF (_,f) (_,x) _ -> parens (nest 4 . sep $ [f,x])
         IfF (_,cnd) (_,thn) (_,els) _ -> parens . nest 4 . sep $ [pretty "if", cnd, thn, els]
+        TypeTestF (_,e) t _ -> parens . nest 4 . sep $ [pretty "TYPE", e, pretty . show $ t]
 
 instance Pretty (Program a) where
     pretty = pretty . getProgram

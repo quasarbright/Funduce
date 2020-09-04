@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 8bf61235541a00994b7e0bd48f2f4ac1f8ac2177653ecbe275d77667932ca6c4
+-- hash: 32d2992402d370dc8eb06922a2ea5ae6052e0288be4589b1f6044f2512d460c2
 
 name:           Funduce
 version:        0.1.0.0
@@ -29,6 +29,7 @@ library
   exposed-modules:
       Funduce.Dynamic.DynamicError
       Funduce.Dynamic.Eval
+      Funduce.Dynamic.Type
       Funduce.Dynamic.WiredIns
       Funduce.Parsing.ConvertSexpr
       Funduce.Parsing.ParseSexpr
