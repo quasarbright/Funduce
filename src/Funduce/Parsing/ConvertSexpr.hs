@@ -41,10 +41,11 @@ convertExpr = para $ \case
     SBracketF _ a -> throwError (Msg "invalid expression" a)
 
 convertDecl :: Sexpr a -> Converter a (Decl a (Expr a))
-convertDecl = let invalid a = throwError (Msg "expected a definition like (define x 1)" a) in \case
+convertDecl = let invalid a = throwError (Msg "expected a definition like (define x 1) or (define-struct pos [x y])" a) in \case
     SParen [SVar "define" _, SVar x _, rhs] a -> Define x [] <$> convertExpr rhs <*> pure a
     SParen [SVar "define" _, SParen (SVar f _:vars) va, rhs] a ->
         Define f <$> convertVars va vars <*> convertExpr rhs <*> pure a
+    SParen [SVar "define-struct" _, SVar name _, SBracket vars va] a -> DefineStruct name <$> convertVars va vars <*> pure a
     SParen _ a -> invalid a
     SInt _ a -> invalid a
     SChar _ a -> invalid a

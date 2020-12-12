@@ -22,7 +22,8 @@ data Expr a = Var String a
             | If (Expr a) (Expr a) (Expr a) a
             deriving(Eq, Ord)
 
-data Decl a b = Define String [String] b a deriving(Eq, Ord, Functor, Foldable, Traversable)
+data Decl a b = Define String [String] b a 
+              | DefineStruct  String [String] a deriving(Eq, Ord, Functor, Foldable, Traversable)
 
 makeBaseFunctor ''Expr
 
@@ -31,6 +32,7 @@ newtype Program a = Program {getProgram :: [Decl a (Expr a)]} deriving(Eq,Ord)
 instance Pretty b => Pretty (Decl a b) where
     pretty (Define x [] rhs _) = nest 4 . vsep $ [hsep [pretty "(define", pretty x], pretty rhs <> pretty ")"]
     pretty (Define f args rhs _) = nest 4 . vsep $ [hsep [pretty "(define", tupled . fmap pretty $ (f:args)], pretty rhs <> pretty ")"]
+    pretty (DefineStruct name fields _) = parens . hsep $ [pretty "define-struct", pretty name, brackets . hsep $ (pretty <$> fields)]
     
     prettyList = vsep . fmap ((<> line) .pretty)
 

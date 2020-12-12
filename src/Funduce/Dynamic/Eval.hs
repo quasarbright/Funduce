@@ -28,13 +28,13 @@ data Cell a = CInt Integer
 
 -- TODO if you do garbage collection, you'll need to reify the enclosed environment. (maybe just do that instead of using a function)
 data Boxed a = Closure (Maybe String) (Cell a -> Interpreter a (Cell a))
-             | Object (Map String (Cell a)) Type
+             | Object [(String, Cell a)] Type
 
 data Value a = VInt Integer
              | VBool Bool
              | VChar Char
              | VClosure (Maybe String) (Cell a -> (Either DynamicError (Value a), Store a)) -- Might need revision
-             | VObject (Map String (Value a)) Type
+             | VObject [(String, Value a)] Type
 
 instance Show (Value a) where
     show = \case
@@ -186,6 +186,27 @@ evalExpr = cata $ \case
         e' <- e
         t' <- inferCell e'
         return (CBool (t == t'))
+    MakeObjF name idx vals _ -> do
+        vals' <- mapM (\(field, e) -> do
+            c <- e
+            return (field, c)) vals
+        CPointer <$> makeBoxed (Object vals' (TCon name idx))
+    AccessObjF name idx field obj _ -> do
+        obj' <- obj
+        case obj' of
+            CPointer addr -> do
+                boxed <- readAddress addr
+                case boxed of
+                    Object vals (TCon actualName actualIdx)
+                        | (actualName, actualIdx) /= (name, idx) -> throwError (TypeMismatch (TCon name idx) (TCon actualName actualIdx))
+                        | otherwise ->
+                            maybe (throwError (InternalError "bad field access")) return (lookup field vals)
+                    _ -> throwError (InternalError "addr led to non object")
+            _ -> do
+                t <- inferCell obj'
+                throwError (TypeMismatch (TCon name idx) t)
+        
+        
 
 
 runBinding :: (b -> Interpreter a (Cell a)) -> Binding a b -> Interpreter a (Env a)
@@ -207,6 +228,22 @@ runBinding evalRHS (Rec bindings _) = do
         go _ = throwError . InternalError $ "unboxed rhs in letrec"
     finalExtensions <- concat <$> mapM go (zip xs (zip addresses rhss'))
     extend' finalExtensions ask
+
+runBinding _ (DefineStruct name fields a) = foldr go ask decls
+    where
+        arity = length fields
+        tObj = TCon name arity -- TODO unique id
+        decls =
+            [ wireTypeTest (name++"?") tObj a
+            , NonRec ("make-"++name) makeFun a
+            ] ++ accessors
+        makeFun = foldr (\field body -> Lambda field body a) makeBody fields
+        makeBody = MakeObj name arity [(field, Var field a) | field <- fields] a
+        accessors = [NonRec (name++"-"++field) (accessor field) a | field <- fields]
+        accessor field = Lambda field (AccessObj name arity field (Var field a) a) a
+        go decl m = do
+            env' <- runDecl decl
+            local (const env') m
 
 ----runDecl (Rec [(x,rhs,_)] _) = do
 ----    address <- freshAddress
@@ -244,7 +281,7 @@ evalCell = \case
                 env <- ask
                 store <- get
                 return $ VClosure mName (\cell -> executeInterpreter env store (evalCell =<< fun cell))
-            Object props t -> VObject <$> mapM evalCell props <*> pure t
+            Object props t -> VObject <$> mapM (\(n,c) -> (,) n <$> evalCell c) props <*> pure t
             
 
 executeInterpreter :: Env a -> Store a -> Interpreter a r -> (Either DynamicError r, Store a)

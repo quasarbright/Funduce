@@ -25,10 +25,13 @@ data Expr a = Var String a
             | App (Expr a) (Expr a) a
             | If (Expr a) (Expr a) (Expr a) a
             | TypeTest (Expr a) Type a
+            | MakeObj String Int [(String, Expr a)] a
+            | AccessObj String Int String (Expr a) a
             deriving (Eq, Ord)
 
 data Binding a b = NonRec String b a
                  | Rec [(String, b, a)] a
+                 | DefineStruct String [String] a
                  deriving(Eq, Ord, Functor, Foldable, Traversable)
 
 type Decl a = Binding a (Expr a)
@@ -41,6 +44,7 @@ instance Show (Binding a String) where
     show = \case
         NonRec x rhs _ -> unwords[x,"=",rhs]
         Rec bindings _ -> intercalate " and " [unwords [x,"=", rhs] | (x,rhs,_) <- bindings]
+        DefineStruct name fields _ -> concat ["(define-struct ",name,"[",unwords (show <$> fields), "])"]
 
 instance Show (Expr a) where
     show = cata $ \case
@@ -52,12 +56,15 @@ instance Show (Expr a) where
         AppF f x _ -> concat ["(",f," ",x,")"]
         IfF cnd thn els _ -> concat["(if ",cnd," ",thn," ",els,")"]
         TypeTestF e t _ -> concat["(TYPE? ",e," ",show t,")"]
+        MakeObjF name _ fields _ -> concat["(make-",name," ",show fields,")"]
+        AccessObjF name _ field obj _ -> concat["(",name,"-",field," ",obj,")"]
 
 instance Pretty b => Pretty (Binding a b) where
     pretty = \case
         NonRec x rhs _ -> hsep [pretty x, pretty "=", pretty rhs]
         Rec bindings _ -> align . encloseSep mempty mempty (softline <> pretty "and ") 
                           $ [hsep[pretty x,pretty "=",pretty rhs] | (x,rhs,_) <- bindings]
+        DefineStruct name fields _ -> parens . hsep $ [pretty "define-struct", pretty name, brackets . hsep $ (pretty <$> fields)]
     prettyList decls = encloseSep mempty mempty line (pretty <$> decls)
 
 instance Pretty (Expr a) where
@@ -70,6 +77,8 @@ instance Pretty (Expr a) where
         AppF (_,f) (_,x) _ -> parens (nest 4 . sep $ [f,x])
         IfF (_,cnd) (_,thn) (_,els) _ -> parens . nest 4 . sep $ [pretty "if", cnd, thn, els]
         TypeTestF (_,e) t _ -> parens . nest 4 . sep $ [pretty "TYPE", e, pretty . show $ t]
+        MakeObjF name _ fields _ -> parens . nest 4 . sep $ [pretty ("make-"++name), pretty $ show (fst <$> fields)]
+        AccessObjF name _ field obj _ -> parens . nest 4 . sep $ [pretty (name++"-"++field), snd obj]
 
 instance Pretty (Program a) where
     pretty = pretty . getProgram

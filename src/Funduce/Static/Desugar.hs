@@ -33,6 +33,7 @@ desugarDecl = desugarDeclWith desugarExpr
 desugarDeclWith :: (e -> C.Expr a) -> A.Decl a e -> C.Decl a
 desugarDeclWith convert (A.Define x [] rhs a) = C.NonRec x (convert rhs) a
 desugarDeclWith convert (A.Define f args rhs a) = C.Rec [(f,curryHelp args (convert rhs) a, a)] a
+desugarDeclWith _       (A.DefineStruct name fields a) = C.DefineStruct name fields a
 
 desugarProgram :: A.Program a -> C.Program a
 desugarProgram = A.getProgram >>> fmap desugarDecl >>> C.Program
