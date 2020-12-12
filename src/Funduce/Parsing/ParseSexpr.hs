@@ -70,7 +70,7 @@ parseParens :: Parser (Sexpr SS)
 parseParens = wrapSSApp $ SParen <$> parens (some pSexpr)
 
 parseBrackets :: Parser (Sexpr SS)
-parseBrackets = wrapSSApp $ SBracket <$> brackets (some pSexpr)
+parseBrackets = wrapSSApp $ SBracket <$> brackets (many pSexpr)
 
 pSexpr :: Parser (Sexpr SS)
 pSexpr = choice [parseAtom, parseParens, parseBrackets]

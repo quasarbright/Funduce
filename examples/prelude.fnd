@@ -1,0 +1,24 @@
+(define-struct cons [first rest])
+(define-struct emptyList [])
+
+(define cons make-cons)
+(define empty (make-emptyList))
+(define first cons-first)
+(define rest cons-rest)
+(define empty? emptyList?)
+
+(define (foldr f b xs)
+    (if (empty? xs)
+        b
+        (f (first xs) (foldr f b (rest xs)))))
+
+(define (append l1 l2)
+    (foldr cons l2 l1))
+
+(define (map f xs) (foldr (fun (x ys) (cons (f x) ys)) empty xs))
+
+(define (ormap f xs) (foldr or #f (map f xs)))
+
+(define (andmap f xs) (foldr and #t (map f xs)))
+
+(define (filter pred xs) (foldr (fun (x xs) (if (pred x) (cons x xs) xs)) empty xs))
