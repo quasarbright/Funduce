@@ -80,6 +80,9 @@ browse _ = printAnnots
 quit :: a -> Repl ()
 quit _ =  liftIO exitSuccess
 
+help :: a -> Repl ()
+help _ = liftIO $ putStrLn (unlines [name ++ "\t" ++ msg | (name,_,msg) <- commands])
+
 ---------------------------------------------------------------------
 -- Interactive Shell
 ---------------------------------------------------------------------
@@ -87,21 +90,26 @@ quit _ =  liftIO exitSuccess
 defaultMatcher :: MonadIO m => [(String, CompletionFunc m)]
 defaultMatcher =
     [ (":load", fileCompleter)
+    , (":l", fileCompleter)
     ]
 
 comp :: (Monad m, MonadState IState m) => WordCompleter m
 comp n = do
-  let cmds = [":load", ":quit"]
+  let cmds = [':':name | (name,_,_) <- commands]
   (env,_) <- get
   let names = Map.keys env
   return $ filter (isPrefixOf n) (cmds ++ names)
 
+commands :: [([Char], [String] -> Repl (), [Char])]
+commands =
+    [ ("load", load, "load a file's definitions")
+    , ("quit", quit, "exit the repl")
+    , ("browse", browse, "show all bindings in scope")
+    , ("help", help, "display this help text")
+    ]
+
 opts :: [(String, [String] -> Repl ())]
-opts = [
-    ("load"   , load)
-  , ("quit"   , quit)
-  , ("browse", browse)
-  ]
+opts = [(name, f) | (name,f,_) <- commands]
 
 ---------------------------------------------------------------------
 -- Entry Point
