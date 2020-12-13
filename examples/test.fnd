@@ -17,3 +17,7 @@
 (define (fac n) (if (eq? n 0) 1 (* n (fac (- n 1)))))
 
 (define-struct posn [x y])
+
+(define posn1 (make-posn 1 2))
+
+(define (add-posns p1 p2) (make-posn (+ (posn-x p1) (posn-x p2)) (+ (posn-y p1) (posn-y p2))))
